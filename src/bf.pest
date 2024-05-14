@@ -1,0 +1,4 @@
+program = _{ token* }
+token = _{ op | loop }
+op = { ">" | "<" | "+" | "-" | "." | "," }
+loop = { "[" ~ token* ~ "]" }

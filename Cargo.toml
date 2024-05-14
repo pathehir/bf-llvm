@@ -1,0 +1,15 @@
+workspace.members = [ "std" ]
+
+[package]
+name = "bf"
+description = "a very bad brainfuck interpreter"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.5.4", features = ["derive"] }
+inkwell = { version = "0.4.0", features = ["llvm17-0"] }
+pest = "2.7.10"
+pest_derive = "2.7.10"

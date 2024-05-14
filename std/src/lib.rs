@@ -8,7 +8,6 @@ pub extern "C" fn print_byte(num: u8) {
 
 #[no_mangle]
 pub extern "C" fn read_byte() -> u8 {
-    let mut buf = String::new();
-    std::io::stdin().read_line(&mut buf).unwrap();
-    buf.as_bytes()[0]
+    let out = console::Term::stdout();
+    out.read_char().unwrap() as u8
 }

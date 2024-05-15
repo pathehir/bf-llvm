@@ -1,5 +1,4 @@
 use clap::Parser as CParser;
-use inkwell::types::BasicType;
 use pest::Parser;
 
 use std::io::Read;
@@ -161,10 +160,10 @@ fn build_tree(
     }
 }
 
-fn build(ast: &[Node]) {
+fn build(ast: &[Node], file_name: &std::ffi::OsStr) {
     // llvm boilerplate
     let context = inkwell::context::Context::create();
-    let module = context.create_module("fuckbrain");
+    let module = context.create_module(file_name.to_str().unwrap());
     let builder = context.create_builder();
     let i8_type = context.i8_type();
 
@@ -205,8 +204,27 @@ fn build(ast: &[Node]) {
     // return void from main
     builder.build_return(None).unwrap();
 
-    // print ir
-    println!("{}", module.to_string());
+    let triple = inkwell::targets::TargetMachine::get_default_triple();
+    inkwell::targets::Target::initialize_all(&inkwell::targets::InitializationConfig::default());
+    let target = inkwell::targets::Target::from_triple(&triple).unwrap();
+    let machine = target
+        .create_target_machine(
+            &triple,
+            "generic",
+            "",
+            inkwell::OptimizationLevel::Aggressive,
+            inkwell::targets::RelocMode::PIC,
+            inkwell::targets::CodeModel::Default,
+        )
+        .unwrap();
+
+    machine
+        .write_to_file(
+            &module,
+            inkwell::targets::FileType::Object,
+            std::path::Path::new(&(file_name.to_str().unwrap().to_owned() + ".o")),
+        )
+        .unwrap();
 }
 
 #[derive(clap::Parser, Debug)]
@@ -220,7 +238,7 @@ const VALID_TOKENS: [char; 8] = ['>', '<', '+', '-', ',', '.', '[', ']'];
 fn main() {
     let args = Args::parse();
     let mut input = String::new();
-    std::fs::File::open(args.file)
+    std::fs::File::open(&args.file)
         .unwrap()
         .read_to_string(&mut input)
         .unwrap();
@@ -238,5 +256,8 @@ fn main() {
         }
     }
 
-    build(&ast);
+    build(
+        &ast,
+        args.file.file_stem().unwrap_or(std::ffi::OsStr::new("out")),
+    );
 }

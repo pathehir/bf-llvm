@@ -1,5 +1,5 @@
-use clap::Parser as CParser;
-use pest::Parser;
+use clap::Parser as _;
+use pest::Parser as _;
 
 use std::io::Read;
 

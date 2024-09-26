@@ -160,7 +160,7 @@ fn build_tree(
     }
 }
 
-fn build(ast: &[Node], file_name: &std::ffi::OsStr) {
+fn build(ast: &[Node], file_name: &std::ffi::OsStr, ir: bool) {
     // llvm boilerplate
     let context = inkwell::context::Context::create();
     let module = context.create_module(file_name.to_str().unwrap());
@@ -204,33 +204,43 @@ fn build(ast: &[Node], file_name: &std::ffi::OsStr) {
     // return void from main
     builder.build_return(None).unwrap();
 
-    let triple = inkwell::targets::TargetMachine::get_default_triple();
-    inkwell::targets::Target::initialize_all(&inkwell::targets::InitializationConfig::default());
-    let target = inkwell::targets::Target::from_triple(&triple).unwrap();
-    let machine = target
-        .create_target_machine(
-            &triple,
-            "generic",
-            "",
-            inkwell::OptimizationLevel::Aggressive,
-            inkwell::targets::RelocMode::PIC,
-            inkwell::targets::CodeModel::Default,
-        )
-        .unwrap();
+    if ir {
+        module
+            .print_to_file(file_name.to_str().unwrap().to_owned() + ".ll")
+            .unwrap()
+    } else {
+        let triple = inkwell::targets::TargetMachine::get_default_triple();
+        inkwell::targets::Target::initialize_all(&inkwell::targets::InitializationConfig::default());
+        let target = inkwell::targets::Target::from_triple(&triple).unwrap();
+        let machine = target
+            .create_target_machine(
+                &triple,
+                "generic",
+                "",
+                inkwell::OptimizationLevel::Aggressive,
+                inkwell::targets::RelocMode::PIC,
+                inkwell::targets::CodeModel::Default,
+            )
+            .unwrap();
 
-    machine
-        .write_to_file(
-            &module,
-            inkwell::targets::FileType::Object,
-            std::path::Path::new(&(file_name.to_str().unwrap().to_owned() + ".o")),
-        )
-        .unwrap();
+        machine
+            .write_to_file(
+                &module,
+                inkwell::targets::FileType::Object,
+                std::path::Path::new(&(file_name.to_str().unwrap().to_owned() + ".o")),
+            )
+            .unwrap();
+    }
 }
 
 #[derive(clap::Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
     file: Box<std::path::Path>,
+
+    #[arg(short, long)]
+    /// emit llvm ir instead of building object
+    emit_ir: bool,
 }
 
 const VALID_TOKENS: [char; 8] = ['>', '<', '+', '-', ',', '.', '[', ']'];
@@ -259,5 +269,6 @@ fn main() {
     build(
         &ast,
         args.file.file_stem().unwrap_or(std::ffi::OsStr::new("out")),
+        args.emit_ir,
     );
 }
